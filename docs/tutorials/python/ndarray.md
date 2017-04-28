@@ -22,7 +22,7 @@ You can create an `NDArray` on either a CPU or a GPU, as follows:
     gpu(2)
 ```
 
-Each of the `NDArray`s shown in the example above (a, b, and c) have two rows and three columns. The `shape` method returns the length (L) for each dimension. The `context` method returns the operational context for an `NDArray`, such as cpu(0) or gpu(2).  
+Each of the `NDArray`s shown in the example above (a, b, and c) have two rows and three columns. The `shape` method returns the size of each dimension. The `context` method returns the operational context for an `NDArray`, such as cpu(0) or gpu(2).  
 
 You can initialize an `NDArray` in multiple ways:
 
@@ -79,8 +79,8 @@ You can convert an `NDArray` to a `numpy.ndarray`:
 ```
 Note that MXNet `NDArray`s behave differently than `numpy.ndarray`s in some important respects:
 
-- NDArray.T performs real data transpose to return new a copied array, instead of returning a view of the input array.
-- NDArray.dot performs a dot operation between the last axis of the first input array and the first axis of the second input array, whereas numpy.dot uses the second last axis of the input array.
+- NDArray.T performs a real data transpose to return a new copied array, instead of returning a view of the input array.
+- NDArray.dot performs a dot operation between the last axis of the first input array and the first axis of the second input array, whereas numpy.dot uses the last axis of the second input array.
 
 You can also convert a `numpy.ndarray` to an `NDArray`:
 
