@@ -1,72 +1,114 @@
 # NDArray: NumPy-style Tensor Computations on CPUs and GPUs
 
-In MXNet, `NDArray` is the basic operational unit for matrix and tensor
-computations. It is similar to `numpy.ndarray`, but it has two additional
+`NDArray` is the basic operational unit for matrix and tensor
+computations within MXNet. `NDArray` is similar to `numpy.ndarray`, but it supports two very powerful additional
 features:
 
-- Multiple device support: All operations can be run on various devices, including CPU and GPU cards.
-- Automatic parallelization: All operations are automatically executed in parallel with each other.
+- Multiple devices - Operations can run on different devices, including CPU and GPU cards.
+- Automatic parallelization - Operations are automatically executed in parallel when possible.
 
-## Creation and Initialization
+## Creating and Initializing `NDArray`s
 
-We can create an `NDArray` on either a CPU or a GPU:
+You can create an `NDArray` on either a CPU or a GPU, as follows:
 
 ```python
     >>> import mxnet as mx
-    >>> a = mx.nd.empty((2, 3)) # create a 2-by-3 matrix on cpu
-    >>> b = mx.nd.empty((2, 3), mx.gpu()) # create a 2-by-3 matrix on gpu 0
-    >>> c = mx.nd.empty((2, 3), mx.gpu(2)) # create a 2-by-3 matrix on gpu 2
+    >>> a = mx.nd.empty((2, 3)) # Create a 2-by-3 matrix on a CPU
+    >>> b = mx.nd.empty((2, 3), mx.gpu()) # Create a 2-by-3 matrix on GPU 0
+    >>> c = mx.nd.empty((2, 3), mx.gpu(2)) # Create a 2-by-3 matrix on GPU 2
     >>> c.shape # get shape
     (2L, 3L)
     >>> c.context # get device info
     gpu(2)
 ```
 
-They can be initialized in various ways:
+Each of the `NDArray`s shown in the example above (a, b, and c) have two rows and three columns. The `shape` method returns the length (L) for each dimension. The `context` method returns the operational context for an `NDArray`, such as cpu(0) or gpu(2).  
+
+You can initialize an `NDArray` in multiple ways:
 
 ```python
-    >>> a = mx.nd.zeros((2, 3)) # create a 2-by-3 matrix filled with 0
-    >>> b = mx.nd.ones((2, 3))  # create a 2-by-3 matrix filled with 1
-    >>> b[:] = 2 # set all elements of b to 2
+    >>> import mxnet as mx
+    >>> a = mx.nd.zeros((2, 3)) # Create a 2-by-3 matrix filled with 0's
+    >>> b = mx.nd.ones((2, 3))  # Create a 2-by-3 matrix filled with 1's
+    >>> print a.asnumpy()
+    [[ 0.  0.  0.]
+     [ 0.  0.  0.]]
+    >>> print b.asnumpy()
+    [[ 1.  1.  1.]
+     [ 1.  1.  1.]]
+    >>> b[:] = 2 # Set all elements of b to 2.
+    >>> print b.asnumpy()
+    [[ 2.  2.  2.]
+     [ 2.  2.  2.]]
 ```
 
-We can copy the value from one `NDArray` to another, even if they are located on different devices:
+You can copy the values from one `NDArray` to another, even if the `NDArray`s are located on different devices:
 
 ```python
+    >>> import mxnet as mx
     >>> a = mx.nd.ones((2, 3))
+    >>> print a.asnumpy()
+    [[ 1.  1.  1.]
+     [ 1.  1.  1.]]
     >>> b = mx.nd.zeros((2, 3), mx.gpu())
-    >>> a.copyto(b) # copy data from cpu to gpu
+    >>> print b.asnumpy()
+    [[ 0.  0.  0.]
+     [ 0.  0.  0.]]
+    >>> a.copyto(b) # Copy the data from a CPU to a GPU
+    <NDArray 2x3 @gpu(0)>
+    >>> print b.asnumpy()
+    [[ 1.  1.  1.]
+     [ 1.  1.  1.]]
 ```
 
-We can also convert `NDArray` to `numpy.ndarray`:
+You can convert an `NDArray` to a `numpy.ndarray`:
 
 ```python
+    >>> import mxnet as mx
     >>> a = mx.nd.ones((2, 3))
+    >>> type(a)
+    <class 'mxnet.ndarray.NDArray'>
     >>> b = a.asnumpy()
     >>> type(b)
     <type 'numpy.ndarray'>
+    >>> print a
+    <NDArray 2x3 @cpu(0)>
     >>> print b
     [[ 1.  1.  1.]
     [ 1.  1.  1.]]
 ```
+Note that MXNet `NDArray`s behave differently than `numpy.ndarray`s in some important respects:
 
-and vice versa:
+- NDArray.T performs real data transpose to return new a copied array, instead of returning a view of the input array.
+- NDArray.dot performs a dot operation between the last axis of the first input array and the first axis of the second input array, whereas numpy.dot uses the second last axis of the input array.
+
+You can also convert a `numpy.ndarray` to an `NDArray`:
 
 ```python
     >>> import numpy as np
+    >>> import mxnet as mx
     >>> a = mx.nd.empty((2, 3))
+    >>> print a.asnumpy()
+    [[  1.36880317e-06   4.58715052e-41   1.36880317e-06]
+     [  4.58715052e-41   1.82058011e-06   4.58715052e-41]]
     >>> a[:] = np.random.uniform(-0.1, 0.1, a.shape)
     >>> print a.asnumpy()
-    [[-0.06821112 -0.03704893  0.06688045]
-     [ 0.09947646 -0.07700162  0.07681718]]
+    [[ 0.0371692   0.07489774 -0.02337022]
+     [-0.08037076  0.07111147 -0.08474302]]
 ```
+
+The `empty` method does not fill the `NDArray` with any values. Thus, the `NDArray` will initially contain the pre-existing values at the memory locations where the it was instantiated. 
 
 ## Basic Element-wise Operations
 
-By default, `NDArray` performs element-wise operations:
+By default, `NDArray` methods perform element-wise operations:
 
 ```python
+    >>> import mxnet as mx
     >>> a = mx.nd.ones((2, 3)) * 2
+    >>> print a.asnumpy()
+    [[ 2.  2.  2.]
+     [ 2.  2.  2.]]
     >>> b = mx.nd.ones((2, 3)) * 4
     >>> print b.asnumpy()
     [[ 4.  4.  4.]
@@ -81,40 +123,55 @@ By default, `NDArray` performs element-wise operations:
      [ 8.  8.  8.]]
 ```
 
-If two `NDArray`s are located on different devices, we need to explicitly move them onto the same device. The following example performs computations on GPU 0:
+If you wish to perform operations on multiple `NDArray`s which are located on different devices, you must explicitly move the `NDArray`s to the same device. You can do this with the `copy` method. The following example performs computations on GPU 0:
 
 ```python
+    >>> import mxnet as mx
     >>> a = mx.nd.ones((2, 3)) * 2
+    >>> print a.asnumpy()
+    [[ 2.  2.  2.]
+     [ 2.  2.  2.]]
     >>> b = mx.nd.ones((2, 3), mx.gpu()) * 3
+    >>> print b.asnumpy()
+    [[ 3.  3.  3.]
+     [ 3.  3.  3.]]
     >>> c = a.copyto(mx.gpu()) * b
     >>> print c.asnumpy()
     [[ 6.  6.  6.]
      [ 6.  6.  6.]]
 ```
 
-## Load and Save
+## Loading and Saving `NDArray`s
 
-There are two ways to save data to (or load it from) disks easily. The first way uses
-`pickle`.  `NDArray` is pickle compatible, which means that you can simply pickle the
-`NDArray` as you do with `numpy.ndarray`:
+There are multiple ways that you can save data to files and load data from files. One method is to use
+`pickle`.  `NDArray` is compatible with `pickle`, which means that you can simply run `pickle` against the
+`NDArray` as you would with `numpy.ndarray`:
 
  ```python
     >>> import mxnet as mx
     >>> import pickle as pkl
-
     >>> a = mx.nd.ones((2, 3)) * 2
+    >>> print a.asnumpy()
+    [[ 2.  2.  2.]
+     [ 2.  2.  2.]]
     >>> data = pkl.dumps(a)
     >>> b = pkl.loads(data)
     >>> print b.asnumpy()
     [[ 2.  2.  2.]
      [ 2.  2.  2.]]
  ```
-
-The second way is to directly dump a list of `NDArray` to disk in binary format:
+Another method is to directly dump a list of `NDArray`s to a file in binary format:
 
  ```python
+    >>> import mxnet as mx
     >>> a = mx.nd.ones((2,3))*2
+    >>> print a.asnumpy()
+    [[ 2.  2.  2.]
+     [ 2.  2.  2.]]
     >>> b = mx.nd.ones((2,3))*3
+    >>> print b.asnumpy()
+    [[ 3.  3.  3.]
+     [ 3.  3.  3.]]
     >>> mx.nd.save('mydata.bin', [a, b])
     >>> c = mx.nd.load('mydata.bin')
     >>> print c[0].asnumpy()
@@ -125,9 +182,18 @@ The second way is to directly dump a list of `NDArray` to disk in binary format:
      [ 3.  3.  3.]]
  ```
 
-We can also dump a dict:
+It is also possible to dump a dict:
 
  ```python
+    >>> import mxnet as mx
+    >>> a = mx.nd.ones((2,3))*2
+    >>> print a.asnumpy()
+    [[ 2.  2.  2.]
+     [ 2.  2.  2.]]
+    >>> b = mx.nd.ones((2,3))*3
+    >>> print b.asnumpy()
+    [[ 3.  3.  3.]
+     [ 3.  3.  3.]]
     >>> mx.nd.save('mydata.bin', {'a':a, 'b':b})
     >>> c = mx.nd.load('mydata.bin')
     >>> print c['a'].asnumpy()
@@ -138,51 +204,54 @@ We can also dump a dict:
      [ 3.  3.  3.]]
  ```
 
-In addition, if we have set up distributed file systems, such as Amazon S3 and HDFS, we
-can directly save to and load from them. For example:
+In addition, if you have set up distributed file systems, such as Amazon S3 and HDFS, you
+can directly save to and load data from those file systems:
 
  ```python
+    >>> import mxnet as mx
+    >>> a = mx.nd.ones((2,3))*2
+    >>> b = mx.nd.ones((2,3))*3
     >>> mx.nd.save('s3://mybucket/mydata.bin', [a,b])
-    >>> mx.nd.save('hdfs///users/myname/mydata.bin', [a,b])
+    >>> mx.nd.save('hdfs://users/myname/mydata.bin', [a,b])
  ```
 
 ## Automatic Parallelization
-`NDArray` can automatically execute operations in parallel. This is desirable when you
-use multiple resources, such as CPU and GPU cards, and CPU-to-GPU memory bandwidth.
+An `NDArray` can automatically execute operations in parallel. This is very helpful when you
+use multiple compute resources, such as CPU and GPU cards, along with CPU-to-GPU memory bandwidth.
 
-For example, if we write `a += 1` followed by `b += 1`, and `a` is on a CPU card while
-`b` is on a GPU card, then we will want to execute them in parallel to improve the
-efficiency. Furthermore, data copies between CPU and GPU are expensive, so we
+For example, if your code includes the statement `a += 1` followed by `b += 1`, and `a` is on a CPU card while
+`b` is on a GPU card, then you will want to execute those operations in parallel in order to maximize performance. In addition, data copies between CPU and GPU are expensive, so you will
 want to run them in parallel with other computations.
 
-However, finding statements that can be executed in parallel by eye is hard. In the
+However, it is difficult to manually determine which statements can be executed in parallel. In the
 following example, `a+=1` and `c*=3` can be executed in parallel, but `a+=1` and
-`b*=3` have to be sequentially executed.
+`b*=3` must be executed sequentially.
 
  ```python
-    a = mx.nd.ones((2,3))
-    b = a
-    c = a.copyto(mx.cpu())
-    a += 1
-    b *= 3
-    c *= 3
+    >>> import mxnet as mx
+    >>> a = mx.nd.ones((2,3))
+    >>> b = a
+    >>> c = a.copyto(mx.cpu())
+    >>> a += 1
+    >>> b *= 3
+    >>> c *= 3
  ```
 
-Luckily, MXNet can automatically resolve the dependencies and
-execute operations in parallel with correctness guaranteed. In other words, we
+Fortunately, MXNet can automatically resolve the dependencies and
+execute operations in parallel while guaranteeing correct execution. Because of this, you
 can write a program as if it is using only a single thread, and MXNet will
-automatically dispatch it to multiple devices, such as multiple GPU cards or multiple
+automatically dispatch it to multiple devices when possible, including multiple GPU cards and multiple
 computers.
 
-MXNet achieves this by lazy evaluation. Any operation we write down is issued to a
-internal engine, and then returned. For example, if we run `a += 1`, it
+MXNet achieves this by using lazy evaluation. Any operation in the code is issued to an
+internal engine, and then returned. For example, if you run `a += 1`, it
 returns immediately after pushing the plus operation to the engine. This
-asynchronism allows us to push more operations to the engine, so it can determine
-the read and write dependency and find the best way to execute operations in
+asynchronism allows MXNet to push more operations to the engine, so it can determine
+the read and write dependencies and determine the best way to execute operations in
 parallel.
 
-The actual computations are finished when we copy the results someplace else, such as `print a.asnumpy()` or `mx.nd.save([a])`. Therefore, to write highly parallelized code, we only need to postpone asking for
-the results.
+The actual computations are completed when the code copies the results to another location, for example when you call `print a.asnumpy()` or `mx.nd.save([a])`. Thus, to achieve high levels of parallelization, your code should postpone retrieving
+the results until after all computations are completed.
 
 ##  Next Steps
 * [Symbol](symbol.md)
